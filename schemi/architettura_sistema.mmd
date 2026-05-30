@@ -1,0 +1,94 @@
+%%
+%% Architettura sistema — Nautica GLEM colonnine smart (v2.3)
+%%
+%% Mermaid flowchart. Anteprima:
+%%   - https://mermaid.live
+%%   - VSCode "Markdown Preview Mermaid Support"
+%%
+%% Convenzioni:
+%%   col   = colonnine smart
+%%   net   = rete molo (mesh WiFi 6 + LTE)
+%%   cloud = backend VPS
+%%   client= app + dashboard
+%%   pay   = Stripe
+%%
+flowchart LR
+
+  %% =====================================================
+  %% COLONNINE
+  %% =====================================================
+  subgraph COLONNINE["Molo — colonnine smart (30–80)"]
+    C1["Colonnina #1<br/>ESP32-U + antenna esterna IP67<br/>2× PZEM + contattori 12 V DC<br/>2 prese 230 V/16 A + 2 idriche<br/>QR sticker, DS18B20 termico"]:::col
+    C2["Colonnina #2"]:::col
+    CN["… Colonnina #N"]:::col
+  end
+
+  %% =====================================================
+  %% RETE MOLO (mesh wireless + gateway)
+  %% =====================================================
+  subgraph MOLO_RETE["Rete molo (100% wireless mesh)"]
+    AP1["Deco X50-Outdoor #1<br/>WiFi 6 AX3000 IP65<br/>(cablato al router)"]:::net
+    AP2["Deco X50-Outdoor #2<br/>mesh"]:::net
+    AP3["Deco X50-Outdoor #3<br/>mesh"]:::net
+    GW["Cassetta tecnica molo<br/>Teltonika RUT240 (4G LTE)<br/>Raspberry Pi 4 4 GB<br/>Mosquitto MQTT broker<br/>WireGuard VPN → cloud<br/>UPS 12 V autonomia 4 h"]:::net
+  end
+
+  C1 -- MQTT TLS / WiFi --> AP1
+  C2 -- MQTT TLS / WiFi --> AP2
+  CN -- MQTT TLS / WiFi --> AP3
+  AP1 -. mesh .- AP2
+  AP2 -. mesh .- AP3
+  AP1 -- Ethernet --> GW
+
+  %% =====================================================
+  %% CLOUD (VPS Hetzner)
+  %% =====================================================
+  subgraph CLOUD["Cloud — VPS Hetzner CX31"]
+    NGINX["NGINX<br/>HTTPS + Let's Encrypt"]:::cloud
+    API["FastAPI<br/>REST + WebSocket"]:::cloud
+    WORKER["MQTT worker<br/>Python paho"]:::cloud
+    DB[("PostgreSQL 15<br/>anagrafica, sessioni,<br/>ledger, telemetria")]:::cloud
+    REDIS[("Redis 7<br/>cache, pub/sub")]:::cloud
+    BROKER[["Mosquitto bridge<br/>MQTT TLS 8883"]]:::cloud
+  end
+
+  GW -- "VPN WireGuard + MQTT bridge" --> BROKER
+  NGINX -- proxy_pass --> API
+  API <--> DB
+  API <--> REDIS
+  API <--> BROKER
+  WORKER <--> BROKER
+  WORKER <--> DB
+
+  %% =====================================================
+  %% CLIENT (app + dashboard)
+  %% =====================================================
+  APP["App mobile diportista<br/>Expo / React Native<br/>iOS + Android<br/>Scan QR · wallet · sessione live"]:::client
+  ADMIN["Dashboard admin web<br/>Next.js 14 + Tailwind<br/>KPI · colonnine · utenti<br/>transazioni · export CSV · report"]:::client
+
+  APP -- "HTTPS REST + WS" --> NGINX
+  ADMIN -- "HTTPS REST" --> NGINX
+
+  %% =====================================================
+  %% PAGAMENTI
+  %% =====================================================
+  STRIPE[["Stripe Checkout<br/>hosted, ricarica wallet<br/>+ webhook → accredito"]]:::pay
+
+  APP -- "open Checkout URL" --> STRIPE
+  STRIPE -- "webhook firmato" --> NGINX
+
+  %% =====================================================
+  %% NOTIFICHE PUSH
+  %% =====================================================
+  PUSH["Expo Push Service<br/>(soglia wallet, fine sessione,<br/>disconnessione presa)"]:::cloud
+  API -. push .-> PUSH
+  PUSH -. push .-> APP
+
+  %% =====================================================
+  %% Stili
+  %% =====================================================
+  classDef col    fill:#eaf3f7,stroke:#0b4f6c,stroke-width:2px,color:#1c2a33;
+  classDef net    fill:#fff7e6,stroke:#d4881c,stroke-width:2px,color:#1c2a33;
+  classDef cloud  fill:#f3e8ff,stroke:#7e3eaa,stroke-width:2px,color:#1c2a33;
+  classDef client fill:#e8f8ec,stroke:#27ae60,stroke-width:2px,color:#1c2a33;
+  classDef pay    fill:#fde8e8,stroke:#c0392b,stroke-width:2px,color:#1c2a33;

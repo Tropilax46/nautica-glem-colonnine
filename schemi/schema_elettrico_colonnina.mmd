@@ -1,0 +1,113 @@
+%%
+%% Schema elettrico — Colonnina smart Nautica GLEM (v2.3)
+%%
+%% Mermaid flowchart. Anteprima:
+%%   - https://mermaid.live
+%%   - VSCode "Markdown Preview Mermaid Support"
+%%   - GitHub/GitLab markdown native
+%%
+%% Convenzioni:
+%%   - powerAC (rosso)      → 230 V AC
+%%   - power12V (arancione) → 12 V DC (bobine contattori + ingresso buck)
+%%   - power5V  (azzurro)   → 5 V DC (logica)
+%%   - signal   (verde)     → segnali dati / GPIO / UART
+%%
+flowchart LR
+
+  %% =====================================================
+  %% Catena 230 V → presa 1 (la presa 2 e' simmetrica)
+  %% =====================================================
+  L230["230 V AC<br/>dal molo<br/>(F + N)"]:::powerAC
+  DIFF["Differenziale 30 mA<br/>tipo A<br/><i>(esistente)</i>"]:::powerAC
+  MAG1["Magnetotermico<br/>C16A 1P+N<br/><i>(esistente)</i>"]:::powerAC
+  K1["Contattore K1<br/>Finder 22.32<br/>25 A 2NO<br/>bobina 12 V DC"]:::contactor
+  PZ1["PZEM-004T #1<br/>+ TA 100 A<br/>(UART 9600)"]:::meas
+  PRESA1["PRESA 1<br/>Schuko / CEE 16 A<br/>IP67"]:::outlet
+
+  L230 -- F+N --> DIFF
+  DIFF -- F+N --> MAG1
+  MAG1 -- F+N --> K1
+  K1 -- F+N --> PZ1
+  PZ1 -- F+N --> PRESA1
+
+  %% Ramo "presa 2" condensato per chiarezza
+  PRESA2["PRESA 2 (idem)<br/>K2 + PZEM #2"]:::outlet
+  MAG1 -. F+N .-> PRESA2
+
+  %% =====================================================
+  %% Alimentazione 12 V (bobine + buck logica)
+  %% =====================================================
+  HLK["HLK-10M12<br/>AC/DC 230V→12V<br/>10 W (833 mA)"]:::power12V
+  BUCK["Buck MP1584EN<br/>12 V → 5 V"]:::power5V
+
+  MAG1 -- F+N --> HLK
+  HLK -- "+12V / GND" --> BUCK
+
+  %% =====================================================
+  %% MOSFET driver bobine
+  %% =====================================================
+  MOSFET["Driver MOSFET<br/>IRLZ44N ×2<br/>R 220 Ω gate + diodo flyback"]:::drv
+
+  HLK -- "+12V bobine" --> MOSFET
+  MOSFET -- "GND → bobina" --> K1
+
+  %% =====================================================
+  %% ESP32 e periferiche logiche (lato 5 V e 3,3 V)
+  %% =====================================================
+  ESP["ESP32-WROOM-32U<br/>(connettore IPEX antenna esterna)<br/>WiFi 2,4 GHz"]:::esp
+  ANT["Antenna esterna<br/>WiFi 2,4 GHz IP67<br/>5–7 dBi su SMA pannello"]:::antenna
+  LED["LED RGB<br/>WS2812B anello 12"]:::periph
+  TEMP["DS18B20 waterproof<br/>+ pull-up 4,7 kΩ a 3,3 V"]:::periph
+  STOP["Pulsante emergenza<br/>fungo NC 22 mm IP66<br/>(interrompe +12V bobine)"]:::stop
+  VENT["Sfiato a membrana<br/>M12 IP69 PES"]:::env
+  GLAND["Pressacavi IP68<br/>su tutti gli ingressi<br/>cassetta IP66"]:::env
+
+  BUCK -- "+5V" --> ESP
+  BUCK -- "+5V" --> LED
+  ESP -- "+3V3" --> TEMP
+
+  %% Segnali GPIO / UART
+  ESP -- "GPIO 32/33 → gate" --> MOSFET
+  ESP -- "UART2 16/17" --> PZ1
+  ESP -- "UART SW 25/26" --> PRESA2
+  ESP -- "GPIO 4 DATA" --> LED
+  ESP -- "GPIO 27 OneWire" --> TEMP
+  STOP -- "interrompe alim. 12 V" --> HLK
+  ESP -- "GPIO 0 stato fungo" --> STOP
+  ESP -. pigtail IPEX→SMA .-> ANT
+
+  %% =====================================================
+  %% Comunicazione
+  %% =====================================================
+  AP["Mesh WiFi 6 molo<br/>TP-Link Deco X50-Outdoor"]:::net
+  ANT -. WiFi 2,4 GHz .-> AP
+
+  %% =====================================================
+  %% Note finali (etichette informative, non collegate)
+  %% =====================================================
+  NOTA1["Cassetta interna Gewiss GW48007<br/>IP66 294×152×75 mm<br/>+ sfiato + pressacavi"]:::nota
+  NOTA2["MOSFET dissipa <1 mW<br/>(pilota solo bobine, 180 mA)<br/>NIENTE dissipatore"]:::nota
+  NOTA3["MID? sostituire PZEM con<br/>Eastron SDM230-MID (Modbus)"]:::nota
+
+  GLAND -. fa parte di .-> NOTA1
+  VENT  -. fa parte di .-> NOTA1
+  MOSFET -. nota .- NOTA2
+  PZ1 -. nota .- NOTA3
+
+  %% =====================================================
+  %% Stili
+  %% =====================================================
+  classDef powerAC   fill:#fde8e8,stroke:#c0392b,stroke-width:2px,color:#1c2a33;
+  classDef power12V  fill:#fff7e6,stroke:#d4881c,stroke-width:2px,color:#1c2a33;
+  classDef power5V   fill:#eaf3f7,stroke:#0b4f6c,stroke-width:2px,color:#1c2a33;
+  classDef contactor fill:#fde8e8,stroke:#c0392b,stroke-width:2px,color:#1c2a33;
+  classDef drv       fill:#fde8e8,stroke:#c0392b,stroke-width:2px,color:#1c2a33;
+  classDef meas      fill:#fff7e6,stroke:#d4881c,stroke-width:2px,color:#1c2a33;
+  classDef outlet    fill:#ffffff,stroke:#0b4f6c,stroke-width:2px,color:#1c2a33;
+  classDef esp       fill:#eaf3f7,stroke:#0b4f6c,stroke-width:2px,color:#1c2a33;
+  classDef antenna   fill:#e8f8ec,stroke:#27ae60,stroke-width:2px,color:#1c2a33;
+  classDef periph    fill:#eaf3f7,stroke:#0b4f6c,stroke-width:1px,color:#1c2a33;
+  classDef stop      fill:#fde8e8,stroke:#c0392b,stroke-width:2px,color:#1c2a33;
+  classDef env       fill:#f3e8ff,stroke:#7e3eaa,stroke-width:1px,color:#1c2a33;
+  classDef net       fill:#fff7e6,stroke:#d4881c,stroke-width:2px,color:#1c2a33;
+  classDef nota      fill:#fafafa,stroke:#999,stroke-width:1px,color:#555,font-style:italic;

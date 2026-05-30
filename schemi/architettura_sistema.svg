@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  DEPRECATO dal 17/05/2026.
+  Il diagramma e' stato trasformato in formato Mermaid (.mmd):
+      schemi/architettura_sistema.mmd
+
+  Puoi cancellare questo file .svg manualmente: il sandbox di rigenerazione
+  non aveva i permessi di delete sul filesystem.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 200" font-family="Arial, sans-serif">
+  <rect width="600" height="200" fill="#fafafa" stroke="#999"/>
+  <text x="300" y="80" text-anchor="middle" font-size="20" fill="#c0392b" font-weight="700">File deprecato</text>
+  <text x="300" y="115" text-anchor="middle" font-size="14" fill="#333">Vedi: schemi/architettura_sistema.mmd</text>
+  <text x="300" y="140" text-anchor="middle" font-size="12" fill="#666">Anteprima Mermaid: https://mermaid.live</text>
+</svg>

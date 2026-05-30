@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Nautica GLEM",
+    "slug": "nautica-glem",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0b4f6c"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "it.nauticaglem.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Per scansionare il QR sulla colonnina.",
+        "NSLocationWhenInUseUsageDescription": "Per mostrarti le colonnine vicine."
+      }
+    },
+    "android": {
+      "package": "it.nauticaglem.app",
+      "permissions": ["CAMERA", "ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+    },
+    "plugins": ["expo-barcode-scanner", "expo-secure-store", "expo-location"]
+  }
+}

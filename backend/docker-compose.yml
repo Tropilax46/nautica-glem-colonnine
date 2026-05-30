@@ -1,0 +1,53 @@
+version: "3.9"
+
+# Compose per ambiente di sviluppo locale.
+# In produzione usare un compose separato con volumi persistenti
+# e con NGINX davanti.
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: glem
+      POSTGRES_USER: glem
+      POSTGRES_PASSWORD: glem
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports:
+      - "1883:1883"   # MQTT plain (solo dev)
+      - "8883:8883"   # MQTT TLS (prod)
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+
+  api:
+    build: .
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      DATABASE_URL: postgresql+psycopg://glem:glem@postgres:5432/glem
+      MQTT_HOST: mosquitto
+      MQTT_PORT: 1883
+    ports: ["8000:8000"]
+    depends_on: [postgres, redis, mosquitto]
+    volumes: [".:/app"]
+
+  mqtt_worker:
+    build: .
+    command: python mqtt_worker.py
+    environment:
+      DATABASE_URL: postgresql+psycopg://glem:glem@postgres:5432/glem
+      MQTT_HOST: mosquitto
+      MQTT_PORT: 1883
+    depends_on: [postgres, mosquitto]
+    volumes: [".:/app"]
+
+volumes:
+  pgdata:
