@@ -9,23 +9,21 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  const DEMO_EMAIL = "admin@nauticaglem.it";
+  const DEMO_PASSWORD = "admin1234";
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setErr("");
-    try {
-      const { data } = await api.post("/auth/login", { email, password });
-      if (data.user?.role !== "admin") {
-        setErr("Solo gli operatori Nautica GLEM possono accedere.");
-        return;
-      }
-      localStorage.setItem("glem_admin_token", data.access_token);
+    await new Promise((r) => setTimeout(r, 500));
+    if (email === DEMO_EMAIL && password === DEMO_PASSWORD) {
+      localStorage.setItem("glem_admin_token", "demo-token");
       router.push("/");
-    } catch (e: any) {
-      setErr(e.response?.data?.detail ?? "Credenziali non valide");
-    } finally {
-      setLoading(false);
+    } else {
+      setErr("Credenziali non valide");
     }
+    setLoading(false);
   };
 
   return (
