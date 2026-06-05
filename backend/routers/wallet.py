@@ -71,6 +71,9 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     if event["type"] == "checkout.session.completed":
         s = event["data"]["object"]
         if s.get("metadata", {}).get("type") == "wallet_topup" and s.get("payment_status") == "paid":
+            # Idempotenza: Stripe può riprovare lo stesso evento — evitare doppia ricarica
+            if db.query(Ledger).filter_by(stripe_intent=s["id"]).first():
+                return {"ok": True}
             uid = s["metadata"]["user_id"]
             amount = Decimal(s["amount_total"]) / 100
             user = db.get(User, uid)

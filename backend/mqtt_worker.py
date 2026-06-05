@@ -6,7 +6,7 @@ In produzione: gestire con systemd o supervisord.
 """
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 
 import paho.mqtt.client as mqtt
@@ -26,7 +26,8 @@ def handle_status(db: Session, colonnina_id: str, payload: dict):
         return
     col.online = payload.get("online", True)
     col.firmware = payload.get("firmware")
-    col.last_seen = datetime.utcnow()
+    # [I2] Fix: timezone-aware
+    col.last_seen = datetime.now(timezone.utc)
     db.commit()
 
 
@@ -46,11 +47,12 @@ def handle_telemetry(db: Session, colonnina_id: str, payload: dict):
         .first()
     )
 
+    # [I2] Fix: timezone-aware
     db.add(Telemetry(
         session_id=sess.id if sess else None,
         colonnina_id=colonnina_id,
         presa_n=presa_n,
-        ts=datetime.utcnow(),
+        ts=datetime.now(timezone.utc),
         voltage=payload.get("V"),
         current=payload.get("A"),
         power=payload.get("W"),
@@ -67,6 +69,13 @@ def handle_telemetry(db: Session, colonnina_id: str, payload: dict):
     last = sess.last_kwh_meter or new_kwh
     delta_kwh = max(Decimal("0"), new_kwh - last)
     col = db.get(Colonnina, colonnina_id)
+
+    # [C2] Fix: guard su col None — colonnina rimossa dal DB ma ancora attiva su MQTT
+    if not col:
+        log.warning("Colonnina %s non trovata in DB, billing saltato", colonnina_id)
+        db.commit()
+        return
+
     tariff = Decimal(str(col.tariff_eur or settings.base_tariff_eur_per_kwh))
     cost = delta_kwh * tariff
 

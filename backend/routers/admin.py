@@ -111,19 +111,19 @@ class ColonninaAdmin(BaseModel):
 
 @router.get("/colonnine", response_model=list[ColonninaAdmin])
 def list_colonnine(db: Session = Depends(get_db)):
+    # [I1] Fix: pre-carica tutte le sessioni attive in una sola query, evita N+1
+    sessioni_attive = {
+        (s.colonnina_id, s.presa_n): s
+        for s in db.scalars(
+            select(ChargeSession).where(ChargeSession.status == SessionStatus.ACTIVE)
+        ).all()
+    }
+
     out = []
     for c in db.scalars(select(Colonnina).order_by(Colonnina.id)).all():
         prese = []
         for p in c.prese:
-            sess = db.scalar(
-                select(ChargeSession)
-                .where(
-                    ChargeSession.colonnina_id == c.id,
-                    ChargeSession.presa_n == p.numero,
-                    ChargeSession.status == SessionStatus.ACTIVE,
-                )
-                .limit(1)
-            )
+            sess = sessioni_attive.get((c.id, p.numero))
             prese.append({
                 "numero": p.numero,
                 "stato": "occupata" if p.in_use else "libera",
@@ -153,10 +153,9 @@ class ColonninaCreate(BaseModel):
 @router.post("/colonnine")
 def crea_colonnina(body: ColonninaCreate, db: Session = Depends(get_db)):
     if db.get(Colonnina, body.id):
-        raise HTTPException(409, "id gia' esistente")
+        raise HTTPException(409, "id gia esistente")
     c = Colonnina(**body.model_dump())
     db.add(c)
-    # prese di default 2
     for n in (1, 2):
         db.add(Presa(colonnina_id=c.id, numero=n, qr_code=c.id + "-" + str(n)))
     db.commit()

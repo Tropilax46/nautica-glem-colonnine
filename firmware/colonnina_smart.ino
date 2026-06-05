@@ -83,7 +83,7 @@ struct PresaState {
 };
 PresaState presa[2];
 
-String colonnninaId;
+String colonninaId;
 String mqttHost;
 uint16_t mqttPort = 8883;
 String mqttUser, mqttPass;
@@ -103,7 +103,7 @@ void setRele(uint8_t n, bool on) {
 }
 
 String topic(const char* suffix) {
-  return "colonnine/" + colonnninaId + "/" + suffix;
+  return "colonnine/" + colonninaId + "/" + suffix;
 }
 
 // ---- MQTT ------------------------------------------------------------------
@@ -253,7 +253,7 @@ void connectMqtt() {
   mqtt.setServer(mqttHost.c_str(), mqttPort);
   mqtt.setCallback(onMqttMessage);
   while (!mqtt.connected()) {
-    String cid = "col-" + colonnninaId;
+    String cid = "col-" + colonninaId;
     if (mqtt.connect(cid.c_str(), mqttUser.c_str(), mqttPass.c_str(),
                      topic("status").c_str(), 1, true,
                      "{\"online\":false}")) {
@@ -283,7 +283,7 @@ void setup() {
   thermo.setResolution(11);   // 11 bit ≈ 0,125 °C, ~375 ms conversione
 
   prefs.begin("glem", false);
-  colonnninaId = prefs.getString("id", "DEV-0000");
+  colonninaId = prefs.getString("id", "DEV-0000");
   mqttHost     = prefs.getString("mqtt_h", "mqtt.glem.local");
   mqttUser     = prefs.getString("mqtt_u", "");
   mqttPass     = prefs.getString("mqtt_p", "");

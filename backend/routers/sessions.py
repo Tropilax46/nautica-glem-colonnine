@@ -42,7 +42,7 @@ def start(body: StartSessionIn,
         raise HTTPException(409, "presa già in uso")
     if (user.wallet_eur or 0) < Decimal(str(settings.min_wallet_to_start_eur)):
         raise HTTPException(402, f"saldo wallet insufficiente, minimo "
-                                  f"{settings.min_wallet_to_start_eur} €")
+                                  f"{settings.min_wallet_to_start_eur} EUR")
 
     sess = ChargeSession(
         user_id=user.id,
@@ -71,6 +71,18 @@ def start(body: StartSessionIn,
     return sess
 
 
+# [C1] Fix: /active registrato PRIMA di /{session_id} per evitare che FastAPI
+# catturi "active" come UUID e restituisca 422.
+@router.get("/active", response_model=list[SessionOut])
+def active(user: User = Depends(current_user), db: Session = Depends(get_db)):
+    return (db.query(ChargeSession)
+              .filter(ChargeSession.user_id == user.id,
+                      ChargeSession.status.in_([SessionStatus.PENDING,
+                                                SessionStatus.ACTIVE,
+                                                SessionStatus.STOPPING]))
+              .all())
+
+
 @router.delete("/{session_id}", response_model=SessionOut)
 def stop(session_id: UUID,
          user: User = Depends(current_user),
@@ -89,13 +101,3 @@ def stop(session_id: UUID,
         auth={"username": settings.mqtt_user, "password": settings.mqtt_pass},
     )
     return sess
-
-
-@router.get("/active", response_model=list[SessionOut])
-def active(user: User = Depends(current_user), db: Session = Depends(get_db)):
-    return (db.query(ChargeSession)
-              .filter(ChargeSession.user_id == user.id,
-                      ChargeSession.status.in_([SessionStatus.PENDING,
-                                                SessionStatus.ACTIVE,
-                                                SessionStatus.STOPPING]))
-              .all())

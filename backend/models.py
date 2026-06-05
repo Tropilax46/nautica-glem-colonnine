@@ -1,6 +1,6 @@
 """Modelli ORM."""
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import (
     Column, String, DateTime, Boolean, Float, Integer,
     ForeignKey, Enum, Text, JSON, Numeric,
@@ -9,6 +9,11 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from database import Base
 import enum
+
+
+# [I2] Fix: datetime.utcnow deprecato in Python 3.12+ → timezone-aware
+def _now():
+    return datetime.now(timezone.utc)
 
 
 class UserRole(str, enum.Enum):
@@ -42,7 +47,7 @@ class User(Base):
     boat_name     = Column(String(120))
     role          = Column(Enum(UserRole), default=UserRole.USER)
     wallet_eur    = Column(Numeric(10, 4), default=0)
-    created_at    = Column(DateTime, default=datetime.utcnow)
+    created_at    = Column(DateTime, default=_now)
 
 
 class Colonnina(Base):
@@ -56,7 +61,7 @@ class Colonnina(Base):
     firmware      = Column(String(32))
     last_seen     = Column(DateTime)
     note          = Column(Text)
-    created_at    = Column(DateTime, default=datetime.utcnow)
+    created_at    = Column(DateTime, default=_now)
 
 
 class Presa(Base):
@@ -76,7 +81,7 @@ class ChargeSession(Base):
     user_id       = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     colonnina_id  = Column(String(32), ForeignKey("colonnine.id"))
     presa_n       = Column(Integer)
-    started_at    = Column(DateTime, default=datetime.utcnow)
+    started_at    = Column(DateTime, default=_now)
     ended_at      = Column(DateTime)
     kwh           = Column(Numeric(10, 4), default=0)
     cost_eur      = Column(Numeric(10, 4), default=0)
@@ -91,7 +96,7 @@ class Telemetry(Base):
     session_id    = Column(UUID(as_uuid=True), ForeignKey("sessions.id"), index=True)
     colonnina_id  = Column(String(32), index=True)
     presa_n       = Column(Integer)
-    ts            = Column(DateTime, default=datetime.utcnow, index=True)
+    ts            = Column(DateTime, default=_now, index=True)
     voltage       = Column(Float)
     current       = Column(Float)
     power         = Column(Float)
@@ -109,4 +114,4 @@ class Ledger(Base):
     kwh           = Column(Numeric(10, 4))
     stripe_intent = Column(String(120))
     note          = Column(Text)
-    created_at    = Column(DateTime, default=datetime.utcnow)
+    created_at    = Column(DateTime, default=_now)

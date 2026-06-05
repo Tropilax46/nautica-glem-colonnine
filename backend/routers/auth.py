@@ -1,5 +1,5 @@
 """Autenticazione: registrazione, login, refresh."""
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
@@ -33,7 +33,8 @@ class TokenOut(BaseModel):
 
 
 def _make_token(sub: str, minutes: int) -> str:
-    payload = {"sub": sub, "exp": datetime.utcnow() + timedelta(minutes=minutes)}
+    # [I2] Fix: datetime.utcnow deprecato in Python 3.12+ → timezone-aware
+    payload = {"sub": sub, "exp": datetime.now(timezone.utc) + timedelta(minutes=minutes)}
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 

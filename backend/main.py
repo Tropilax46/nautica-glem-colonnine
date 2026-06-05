@@ -5,6 +5,7 @@ Bootstrap FastAPI con i router principali.
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from database import engine, Base, get_db
 import models, schemas
@@ -43,5 +44,6 @@ app.include_router(admin.router,      prefix="/admin",       tags=["admin"])
 
 @app.get("/health")
 def health(db: Session = Depends(get_db)):
-    db.execute("SELECT 1")
+    # [C4] Fix: text() richiesto da SQLAlchemy 2.x per raw SQL
+    db.execute(text("SELECT 1"))
     return {"status": "ok", "service": "glem-colonnine"}

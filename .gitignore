@@ -23,3 +23,9 @@ Thumbs.db
 backend/.env
 dashboard-admin/.env.local
 mobile-app/.env
+
+# Office lock files
+.~lock.*#
+
+# Office lock files
+.~lock.*#
