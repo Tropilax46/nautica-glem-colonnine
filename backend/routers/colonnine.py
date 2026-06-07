@@ -7,7 +7,7 @@ Espone uno shape pulito per il front-end (app mobile):
     }
 """
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from pydantic import BaseModel
 from database import get_db
 from models import Colonnina, Presa
@@ -54,7 +54,11 @@ def _to_public(c: Colonnina) -> ColonninaPublic:
 
 @router.get("", response_model=list[ColonninaPublic])
 def list_all(db: Session = Depends(get_db), _=Depends(current_user)):
-    rows = db.query(Colonnina).order_by(Colonnina.id).all()
+    # [O1] eager-load delle prese: evita l'N+1 in _to_public (1 query invece di 1+N)
+    rows = (db.query(Colonnina)
+              .options(joinedload(Colonnina.prese))
+              .order_by(Colonnina.id)
+              .all())
     return [_to_public(c) for c in rows]
 
 
