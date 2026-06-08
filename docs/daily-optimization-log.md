@@ -11,4 +11,7 @@
 | 2026-05-31 | M1     | firmware/colonnina_smart.ino| Typo `colonnninaId` → `colonninaId` (4 occorrenze)                       | ✅    |
 | 2026-06-06 | I2b    | routers/auth.py             | `_make_token`: `datetime.utcnow` → `datetime.now(timezone.utc)`           | ✅    |
 | 2026-06-06 | ENV    | .gitignore                  | Aggiunto pattern `.~lock.*#` per i lock di LibreOffice/Excel             | ✅    |
-|
+| 2026-06-06 | GIT    | (repo)                      | Commit `1f530ed` creato in locale; push bloccato (no credenziali)        | ⚠️    |
+| 2026-06-07 | O1     | routers/colonnine.py        | list_all: joinedload(prese) — elimina N+1 (1 query invece di 1+N)        | ✅    |
+
+| 2026-06-07 | O1     | routers/colonnine.py        | list_all: joinedload(prese) — elimina N+1 (1 query invece di 1+N)        |  OK   |

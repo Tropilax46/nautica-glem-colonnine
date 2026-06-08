@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from database import get_db
 from models import (
@@ -120,7 +120,11 @@ def list_colonnine(db: Session = Depends(get_db)):
     }
 
     out = []
-    for c in db.scalars(select(Colonnina).order_by(Colonnina.id)).all():
+    # [O2] eager-load delle prese: evita l'N+1 nel loop sottostante (1 query invece di 1+N)
+    colonnine = db.scalars(
+        select(Colonnina).options(joinedload(Colonnina.prese)).order_by(Colonnina.id)
+    ).unique().all()
+    for c in colonnine:
         prese = []
         for p in c.prese:
             sess = sessioni_attive.get((c.id, p.numero))
@@ -260,9 +264,21 @@ def transactions(
         qry = qry.where(Ledger.created_at <= datetime.fromisoformat(to + "T23:59:59"))
     rows = db.execute(qry.order_by(Ledger.created_at.desc()).limit(5000)).all()
 
+    # [O3] pre-carica in UNA query tutte le sessioni referenziate, evita l'N+1
+    # (prima: fino a 5000 db.get(ChargeSession, ...) dentro il loop)
+    session_ids = {l.session_id for l, _ in rows if l.session_id}
+    sessioni = {}
+    if session_ids:
+        sessioni = {
+            s.id: s
+            for s in db.scalars(
+                select(ChargeSession).where(ChargeSession.id.in_(session_ids))
+            ).all()
+        }
+
     data = []
     for ledger, user in rows:
-        sess = db.get(ChargeSession, ledger.session_id) if ledger.session_id else None
+        sess = sessioni.get(ledger.session_id) if ledger.session_id else None
         data.append({
             "id": ledger.id,
             "created_at": ledger.created_at.isoformat(),
