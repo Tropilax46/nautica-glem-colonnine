@@ -112,6 +112,6 @@ class Ledger(Base):
     type          = Column(Enum(LedgerType))
     delta_eur     = Column(Numeric(10, 4))
     kwh           = Column(Numeric(10, 4))
-    stripe_intent = Column(String(120))
+    stripe_intent = Column(String(120), index=True)  # [O4] idempotenza webhook Stripe: lookup indicizzato
     note          = Column(Text)
     created_at    = Column(DateTime, default=_now)

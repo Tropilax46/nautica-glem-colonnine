@@ -51,10 +51,10 @@ def start(body: StartSessionIn,
         status=SessionStatus.PENDING,
         max_kwh=body.max_kwh,
     )
-    db.add(sess); db.commit(); db.refresh(sess)
-
+    # [O3] singolo commit: presa.in_use settato nella stessa transazione,
+    # evita un secondo round-trip al DB (id disponibile via default uuid4 lato Python)
     presa.in_use = True
-    db.commit()
+    db.add(sess); db.commit(); db.refresh(sess)
 
     # Invia comando MQTT
     mqtt_publish.single(

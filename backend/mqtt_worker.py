@@ -84,6 +84,11 @@ def handle_telemetry(db: Session, colonnina_id: str, payload: dict):
     sess.cost_eur = (sess.cost_eur or 0) + cost
 
     user = db.get(User, sess.user_id)
+    # [O2] guard su user None: utente rimosso dal DB ma sessione ancora attiva
+    if not user:
+        log.warning("Utente %s non trovato in DB, billing saltato", sess.user_id)
+        db.commit()
+        return
     user.wallet_eur = (user.wallet_eur or 0) - cost
     db.add(Ledger(
         user_id=user.id, session_id=sess.id,
@@ -103,7 +108,8 @@ def handle_ack(db: Session, colonnina_id: str, payload: dict):
     sid = payload.get("session")
     if not sid:
         return
-    sess = db.query(ChargeSession).filter_by(id=sid).first()
+    # [O1] db.get: lookup per chiave primaria (identity map) invece di query+filter
+    sess = db.get(ChargeSession, sid)
     if sess and payload.get("result") == "ok":
         sess.status = SessionStatus.ACTIVE
         db.commit()

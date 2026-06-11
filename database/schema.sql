@@ -99,6 +99,7 @@ CREATE TABLE ledger (
   created_at      TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX idx_ledger_user ON ledger(user_id, created_at DESC);
+CREATE INDEX idx_ledger_stripe ON ledger(stripe_intent);  -- [O4] idempotenza webhook Stripe
 
 -- ---------- Audit log ----------
 CREATE TABLE audit_log (
