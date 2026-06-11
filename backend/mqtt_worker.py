@@ -25,7 +25,11 @@ def handle_status(db: Session, colonnina_id: str, payload: dict):
     if not col:
         return
     col.online = payload.get("online", True)
-    col.firmware = payload.get("firmware")
+    # [O6] aggiorna firmware solo se presente nel payload: uno status di heartbeat
+    # senza il campo non deve azzerare la versione firmware gia registrata
+    fw = payload.get("firmware")
+    if fw is not None:
+        col.firmware = fw
     # [I2] Fix: timezone-aware
     col.last_seen = datetime.now(timezone.utc)
     db.commit()

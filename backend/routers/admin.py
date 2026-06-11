@@ -1,6 +1,7 @@
 """Endpoint riservati al ruolo admin (dashboard operatore Nautica GLEM)."""
 from datetime import datetime, timedelta, date
 from io import StringIO
+from decimal import Decimal
 import csv
 
 from fastapi import APIRouter, Depends, Query, HTTPException
@@ -237,11 +238,14 @@ def accredita(uid: str, body: CreditBody, db: Session = Depends(get_db)):
     u = db.get(User, uid)
     if not u:
         raise HTTPException(404)
-    u.wallet_eur = float(u.wallet_eur or 0) + body.amount_eur
+    # [O5] aritmetica monetaria con Decimal: coerente con la colonna Numeric(10,4)
+    # e con il resto del backend (wallet.py / mqtt_worker), evita drift float sui soldi
+    amount = Decimal(str(body.amount_eur))
+    u.wallet_eur = (u.wallet_eur or 0) + amount
     db.add(Ledger(
         user_id=u.id,
         type=LedgerType.MANUAL_CREDIT,
-        delta_eur=body.amount_eur,
+        delta_eur=amount,
         note=body.causale,
     ))
     db.commit()

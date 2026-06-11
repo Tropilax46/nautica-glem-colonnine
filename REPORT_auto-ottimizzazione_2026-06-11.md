@@ -4,35 +4,30 @@ Esecuzione automatica del task `ottimizza-commit-push`.
 
 ## Ottimizzazioni applicate
 
-Quattro micro-ottimizzazioni reali, tutte verificate con `py_compile` e `compileall -q backend`.
+Due fix reali di correttezza/coerenza, verificati con `py_compile` e `compileall -q backend`.
 
-- **O1** `mqtt_worker.handle_ack` — sostituito
-  `db.query(ChargeSession).filter_by(id=sid).first()` con `db.get(ChargeSession, sid)`.
-  È un lookup per chiave primaria che sfrutta l'identity map (può evitare il roundtrip
-  se l'oggetto è già in sessione) ed è coerente con l'uso di `db.get` nel resto del backend.
+- **O5** `admin.accredita` (`routers/admin.py`) — l'accredito manuale calcolava il nuovo saldo
+  con aritmetica float: `u.wallet_eur = float(u.wallet_eur or 0) + body.amount_eur` e passava
+  `delta_eur=body.amount_eur` (float) a una colonna `Numeric(10,4)`. Tutto il resto del backend
+  (`wallet.py` webhook Stripe, `mqtt_worker` billing) usa `Decimal` sui valori monetari. Convertito
+  a `Decimal(str(...))` per eliminare il drift di virgola mobile sui soldi e mantenere il tipo
+  coerente con la colonna ORM. Aggiunto `from decimal import Decimal`.
 
-- **O2** `mqtt_worker.handle_telemetry` — aggiunto guard su `user` None prima di
-  `user.wallet_eur = ...`. Prima, se l'utente referenziato dalla sessione era stato
-  rimosso dal DB ma la sessione risultava ancora ACTIVE, il billing andava in
-  `AttributeError` e il messaggio MQTT crashava. Ora il caso è gestito come per il guard
-  [C2] già presente su `col`: warning + commit della telemetria + return.
-
-- **O3** `sessions.start` — unificati i due `db.commit()` in uno solo: `presa.in_use = True`
-  viene settato nella stessa transazione dell'insert della sessione. L'`id` della sessione
-  è comunque disponibile (default `uuid.uuid4` lato Python), quindi il publish MQTT resta
-  corretto. Un round-trip al DB in meno per ogni avvio sessione.
-
-- **O4** `models.Ledger.stripe_intent` — aggiunto `index=True` (+ `CREATE INDEX
-  idx_ledger_stripe` in `database/schema.sql` per parità). Il webhook Stripe esegue
-  `filter_by(stripe_intent=...)` come controllo di idempotenza ad ogni evento `paid`:
-  senza indice era un full-scan della tabella `ledger`, che cresce nel tempo. Ora è un
-  lookup indicizzato. Nota: su un DB già esistente l'indice va creato con una migration.
+- **O6** `mqtt_worker.handle_status` — `col.firmware = payload.get("firmware")` azzerava il campo
+  `firmware` ogni volta che arrivava uno status di heartbeat privo del campo (caso comune per i
+  ping periodici), perdendo la versione già registrata. Ora il firmware viene aggiornato solo se
+  effettivamente presente nel payload (`if fw is not None`).
 
 ## Stato backend
-Il resto del backend (`admin.py`, `colonnine.py`, `wallet.py`, `auth.py`, `deps.py`,
-`users.py`) risulta già pulito: gli N+1 e le fix delle run precedenti (31/05 → 08/06) sono
-confermati, nessun nuovo bug evidente è emerso. mobile-app, dashboard-admin, firmware e docs
-non richiedevano interventi.
+Il resto del backend è confermato pulito: gli N+1 e le fix delle run precedenti (31/05 → 11/06,
+O1–O4, I1–I2, C1–C2) reggono. `colonnine.py`, `sessions.py`, `wallet.py`, `auth.py`, `deps.py`,
+`users.py` non richiedevano interventi. mobile-app, dashboard-admin, firmware e docs invariati.
+
+## Note operative
+- Run aggiuntiva nella stessa giornata: il report del 2026-06-11 precedente (O1–O4) è stato
+  aggiornato con i nuovi interventi O5/O6.
+- Scelte autonome (task eseguito senza supervisione): nessuna migration DB generata perché O5/O6
+  non modificano lo schema; O5 è puramente applicativo.
 
 ## Stato push
 Flusso a prova di lock (index alternativo in /tmp + commit-tree + scrittura diretta del ref).
