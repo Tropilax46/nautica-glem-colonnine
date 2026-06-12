@@ -3,12 +3,16 @@ Nautica GLEM — backend gestionale colonnine
 Bootstrap FastAPI con i router principali.
 """
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from database import engine, Base, get_db
-import models, schemas
+# [O7] Fix: rimosso `schemas` dall'import — il modulo non esiste nel backend e
+# `import models, schemas` faceva fallire l'avvio con ModuleNotFoundError
+# (py_compile non lo rileva perché controlla solo la sintassi). `models` resta
+# importato per registrare le tabelle in Base.metadata prima di create_all.
+import models
 from routers import auth, users, colonnine, sessions, wallet, admin
 from settings import settings
 
