@@ -15,3 +15,4 @@
 | 2026-06-07 | O1     | routers/colonnine.py        | list_all: joinedload(prese) — elimina N+1 (1 query invece di 1+N)        | ✅    |
 
 | 2026-06-07 | O1     | routers/colonnine.py        | list_all: joinedload(prese) — elimina N+1 (1 query invece di 1+N)        |  OK   |
+| 2026-06-14 | O8     | routers/sessions.py         | Aggiunta rotta mancante GET /sessions/{session_id} (read-only)            | ✅    |

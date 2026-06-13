@@ -83,6 +83,21 @@ def active(user: User = Depends(current_user), db: Session = Depends(get_db)):
               .all())
 
 
+# [O8] Fix: aggiunto GET /sessions/{session_id} (read-only). L'app mobile
+# (SessionScreen -> Api.getSession) faceva polling su questa rotta che non
+# esisteva nel backend -> 405/404 e dettaglio sessione mai caricato. Stesso
+# controllo di ownership della DELETE. Registrato DOPO /active (vedi [C1]) cosi
+# "active" non viene interpretato come UUID.
+@router.get("/{session_id}", response_model=SessionOut)
+def get_one(session_id: UUID,
+            user: User = Depends(current_user),
+            db: Session = Depends(get_db)):
+    sess = db.get(ChargeSession, session_id)
+    if not sess or sess.user_id != user.id:
+        raise HTTPException(404)
+    return sess
+
+
 @router.delete("/{session_id}", response_model=SessionOut)
 def stop(session_id: UUID,
          user: User = Depends(current_user),

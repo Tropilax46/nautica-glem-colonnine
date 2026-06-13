@@ -1,6 +1,14 @@
 import axios from "axios";
+import { demoFetch, demoPost, demoDelete } from "./demo";
 
-export const api = axios.create({
+/**
+ * Modalità demo: ATTIVA di default (la webapp gira su Vercel senza backend).
+ * Per collegare il backend FastAPI reale imposta NEXT_PUBLIC_DEMO=0
+ * e NEXT_PUBLIC_API_URL=<url-del-backend>.
+ */
+export const DEMO = process.env.NEXT_PUBLIC_DEMO !== "0";
+
+const http = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000",
 });
 
@@ -19,13 +27,13 @@ export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
 }
 
-api.interceptors.request.use((config) => {
+http.interceptors.request.use((config) => {
   const token = getToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-api.interceptors.response.use(
+http.interceptors.response.use(
   (r) => r,
   (err) => {
     if (err.response?.status === 401 && typeof window !== "undefined") {
@@ -38,51 +46,17 @@ api.interceptors.response.use(
   }
 );
 
-export const fetcher = (url: string) => api.get(url).then((r) => r.data);
+/**
+ * Wrapper usato dalle pagine. In demo le chiamate sono servite dallo store
+ * mock (lib/demo.ts); altrimenti vanno all'istanza axios verso il backend.
+ */
+export const api = {
+  post: (url: string, body?: any) => (DEMO ? demoPost(url, body) : http.post(url, body)),
+  delete: (url: string) => (DEMO ? demoDelete(url) : http.delete(url)),
+  get: (url: string) => (DEMO ? demoFetch(url).then((data) => ({ data })) : http.get(url)),
+};
 
-/* ── Tipi (rispecchiano i response_model del backend FastAPI) ── */
+export const fetcher = (url: string) =>
+  DEMO ? demoFetch(url) : http.get(url).then((r) => r.data);
 
-export interface PresaPublic {
-  numero: number;
-  stato: "libera" | "occupata" | "fuori_servizio";
-}
-
-export interface ColonninaPublic {
-  id: string;
-  nome: string;
-  posto_barca: string;
-  tariffa_eur_kwh: number;
-  online: boolean;
-  prese: PresaPublic[];
-}
-
-export interface SessionOut {
-  id: string;
-  colonnina_id: string;
-  presa_n: number;
-  status: string;
-  kwh: number;
-  cost_eur: number;
-}
-
-export interface Movimento {
-  ts: string;
-  type: string;
-  delta_eur: number;
-  kwh: number;
-  note: string | null;
-}
-
-export interface WalletOut {
-  saldo_eur: number;
-  movimenti: Movimento[];
-}
-
-export interface UserOut {
-  id: string;
-  email: string;
-  full_name: string | null;
-  phone: string | null;
-  boat_name: string | null;
-  wallet_eur: number;
-}
+/* ── Tipi (rispecchiano i response_model del backend FastAPI) �
