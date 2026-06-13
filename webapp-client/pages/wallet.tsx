@@ -20,7 +20,7 @@ function Wallet() {
     setError(null);
     try {
       const r = await api.post("/wallet/topup", { amount_eur: amount });
-      // Redirect a Stripe Checkout
+      // Redirect a Stripe Checkout (in demo torna subito qui con ?topup=ok)
       window.location.href = r.data.checkout_url;
     } catch {
       setError("Errore nella creazione del pagamento. Riprova.");
@@ -86,4 +86,21 @@ function Wallet() {
             <p className={`font-bold ${m.delta_eur >= 0 ? "text-green-600" : "text-slate-700"}`}>
               {m.delta_eur >= 0 ? "+" : ""}
               {m.delta_eur.toFixed(2)} €
- 
+            </p>
+          </div>
+        ))}
+        {!isLoading && (!data || data.movimenti.length === 0) && (
+          <p className="text-center text-slate-400">Nessun movimento.</p>
+        )}
+      </div>
+    </Layout>
+  );
+}
+
+export default function Page() {
+  return (
+    <AuthGuard>
+      <Wallet />
+    </AuthGuard>
+  );
+}

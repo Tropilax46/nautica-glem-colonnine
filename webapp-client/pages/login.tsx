@@ -58,4 +58,17 @@ export default function LoginPage() {
           required
         />
         {error && <p className="text-sm text-red-600">{error}</p>}
-        <button className="btn-primary" disabled={lo
+        <button className="btn-primary" disabled={loading}>
+          {loading ? "Accesso..." : "Accedi"}
+        </button>
+      </form>
+
+      <p className="mt-6 text-center text-sm text-slate-500">
+        Non hai un account?{" "}
+        <Link href="/register" className="font-semibold text-glem-500">
+          Registrati
+        </Link>
+      </p>
+    </div>
+  );
+}

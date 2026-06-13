@@ -59,4 +59,49 @@ export const api = {
 export const fetcher = (url: string) =>
   DEMO ? demoFetch(url) : http.get(url).then((r) => r.data);
 
-/* ── Tipi (rispecchiano i response_model del backend FastAPI) �
+/* ── Tipi (rispecchiano i response_model del backend FastAPI) ── */
+
+export interface UserOut {
+  id: string;
+  email: string;
+  full_name: string | null;
+  phone: string | null;
+  boat_name: string | null;
+  wallet_eur: number;
+}
+
+export interface PresaPublic {
+  numero: number;
+  stato: string;
+}
+
+export interface ColonninaPublic {
+  id: string;
+  nome: string;
+  posto_barca: string;
+  tariffa_eur_kwh: number;
+  online: boolean;
+  prese: PresaPublic[];
+}
+
+export interface SessionOut {
+  id: string;
+  colonnina_id: string;
+  presa_n: number;
+  status: string;
+  kwh: number;
+  cost_eur: number;
+}
+
+export interface Movimento {
+  ts: string;
+  type: string;
+  delta_eur: number;
+  kwh: number;
+  note: string | null;
+}
+
+export interface WalletOut {
+  saldo_eur: number;
+  movimenti: Movimento[];
+}
