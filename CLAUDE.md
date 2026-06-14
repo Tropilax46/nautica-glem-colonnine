@@ -1,106 +1,83 @@
 # Nautica GLEM — Colonnine Smart Marina
 
 ## Cos'è questo progetto
-Sistema IoT per la gestione delle colonnine elettriche di una marina (porto turistico).
-Permette ai diportisti di ricaricare energia dai pontili tramite un wallet digitale con pagamenti Stripe.
+Sistema IoT per la gestione delle colonnine elettriche di una marina. I diportisti
+ricaricano energia dai pontili tramite un wallet a crediti; l'admin gestisce utenti,
+colonnine, transazioni e può entrare come un utente per assistenza.
 
 ---
 
-## Architettura
+## Architettura ATTUALE (dati reali, no mock)
 
-| Layer | Tecnologia | Cartella |
-|-------|-----------|---------|
-| Firmware | ESP32 + MQTT TLS + WiFi mesh | `firmware/` |
-| Backend API | FastAPI (Python) | `backend/` |
-| Admin Dashboard | Next.js 14 | `dashboard-admin/` |
-| Mobile App | Expo React Native | `mobile/` |
-| DB | PostgreSQL + Alembic | `database/` |
-| Deploy infra (design) | Docker Compose su Hetzner VPS | `docker-compose.yml` |
+| Layer | Tecnologia | Dove |
+|-------|-----------|------|
+| Database + Auth + API | **Supabase** (Postgres gestito) | progetto `nautica-glem` (`suptzhugjpppcxpblcov`, eu-central-1) |
+| Webapp cliente (diportisti) | Next.js 14 | Vercel `nautica-glem-app` → https://nautica-glem-app.vercel.app |
+| Dashboard admin | Next.js 14 | Vercel `nautica-glem-colonnine` → https://nautica-glem-colonnine.vercel.app |
+| Impersonazione | Supabase Edge Function `impersonate` | (service_role lato server) |
+| Firmware (futuro) | ESP32 + MQTT | `firmware/` |
+| Backend FastAPI (legacy, NON usato) | FastAPI | `backend/` — sostituito da Supabase |
 
----
-
-## Deploy attuale
-
-### Dashboard Admin → Vercel (LIVE)
-- **URL:** https://nautica-glem-colonnine.vercel.app
-- **Repo GitHub:** https://github.com/Tropilax46/nautica-glem-colonnine
-- Account Vercel: tropilax46's projects (Hobby)
-- Root directory su Vercel: `dashboard-admin`
-- Framework auto-rilevato: Next.js
-- Ogni `git push` su `main` rideploya automaticamente
-
-### Backend FastAPI → NON deployato
-- Pensato per Hetzner VPS con Docker Compose
-- `NEXT_PUBLIC_API_URL` va settato su Vercel env vars quando il backend è live
+Repo GitHub: `Tropilax46/nautica-glem-colonnine`, branch `main`. Ogni push rideploya
+entrambi i progetti Vercel (Root Directory rispettive: `webapp-client`, `dashboard-admin`).
 
 ---
 
-## Credenziali demo (login dashboard)
+## Supabase
 
-La dashboard usa un **mock login hardcoded** (nessun backend necessario):
+- **URL:** `https://suptzhugjpppcxpblcov.supabase.co`
+- **anon key:** pubblica (incorporata nel frontend come default; protetta da RLS).
+- **service_role key:** MAI nel frontend — usata solo dalla Edge Function `impersonate`
+  (Supabase la inietta automaticamente).
 
-| Campo | Valore |
-|-------|--------|
-| Email | `admin@nauticaglem.it` |
-| Password | `admin1234` |
+### Schema (`public`)
+- `profiles` (1:1 con `auth.users`): id, email, full_name, phone, boat_name,
+  `role` ('diportista'|'admin'|'operatore'), `wallet_eur`, created_at.
+  Profilo creato automaticamente alla registrazione (trigger `handle_new_user`).
+- `colonnine`: id (es. `GLEM-A01`), nome, posto_barca, tariffa_eur_kwh, potenza_kw,
+  num_prese, online.
+- `sessions`: sessioni di ricarica (user, colonnina, presa, kwh, cost_eur, status).
+- `movimenti`: ledger wallet (topup / charge / admin_credit).
 
-Il token salvato in localStorage è `"demo-token"`.
-Quando il backend sarà deployato, ripristinare la chiamata reale in `dashboard-admin/pages/login.tsx`.
+### Funzioni RPC (SECURITY DEFINER)
+`start_session(p_qr, p_max_kwh)`, `stop_session(p_session_id)`, `topup(p_amount)`,
+`admin_accredita(p_user, p_amount)`, `colonnine_stato()`, `my_active_session()`, `is_admin()`.
 
----
+### RLS
+Diportista vede/gestisce solo i propri dati; admin vede tutto. Colonnine in lettura a
+tutti gli autenticati. Scritture sensibili (wallet/sessioni) solo via RPC.
 
-## Funzionalità dashboard admin
-
-- **Dashboard** — KPI: ricavi, sessioni attive, energia erogata, utenti
-- **Colonnine** — lista prese con stato real-time + pulsante Force OFF
-- **Utenti** — ricerca + accredita wallet
-- **Transazioni** — filtro per data + export CSV
-- **Report** — grafici ricavi/sessioni
-- **Impostazioni** — configurazione sistema
-
----
-
-## File chiave
-
-```
-dashboard-admin/
-  pages/
-    login.tsx          ← mock login hardcoded (da ricollegare al backend)
-    index.tsx          ← Dashboard KPI
-    colonnine.tsx      ← gestione prese
-    utenti.tsx         ← gestione utenti
-    transazioni.tsx    ← storico pagamenti
-  lib/
-    api.ts             ← axios con base URL da NEXT_PUBLIC_API_URL
-  next.config.js       ← output: "standalone", exposes NEXT_PUBLIC_API_URL
-  .env.example         ← NEXT_PUBLIC_API_URL=http://localhost:8000
-```
+### DEMO settings da rivedere in produzione
+- Trigger `auto_confirm_email`: auto-conferma le email alla registrazione (no click su
+  email). In produzione: rimuovere e abilitare la conferma email reale in Auth.
+- kWh sessione: ancora simulati dal tempo (potenza × durata) finché l'hardware ESP32 non
+  invia letture reali via MQTT.
 
 ---
 
-## Variabili d'ambiente Vercel da settare quando il backend è live
+## Account
+- **Admin:** `admin@nauticaglem.it` (password consegnata separatamente — CAMBIARLA).
+- **Diportisti di test:** `mario.rossi@example.com`, `giulia.bianchi@example.com`.
+- Login admin verifica `role='admin'`; un diportista non può entrare nel pannello admin.
 
-```
-NEXT_PUBLIC_API_URL=https://<tuo-dominio-backend>
-```
+## Impersonazione ("Entra come utente")
+Dashboard admin → Utenti → "Entra come utente": chiama la Edge Function `impersonate`
+(verifica che il chiamante sia admin), che genera una sessione per l'utente target e la
+restituisce; il pulsante apre `webapp-client/impersona#at=…&rt=…` in una nuova scheda,
+già loggata come quell'utente. La service_role key resta sempre lato server.
 
 ---
 
 ## Comandi git
-
 ```bash
-cd "C:\Users\Temp\Desktop\Geno\Nautica GLEM\Colonnine"
-git add .
-git commit -m "descrizione"
-git push   # Vercel rideploya in automatico
+cd "<repo>/Colonnine"
+git add . && git commit -m "msg" && git push   # Vercel rideploya entrambe le app
 ```
+(In ambiente Cowork sandbox usare la procedura di push "a prova di lock" — index
+alternativo via `mktemp`, vedi handoff.)
 
----
-
-## Prossimi passi suggeriti
-
-1. Deploy backend FastAPI su Railway / Render / Hetzner
-2. Configurare NEXT_PUBLIC_API_URL su Vercel
-3. Ripristinare il login reale in `login.tsx`
-4. Configurare Stripe webhook per i pagamenti
-5. Deploy firmware ESP32 sui pontili fisici
+## Prossimi passi
+1. Cambiare la password admin; in produzione abilitare conferma email reale.
+2. Collegare domini custom (es. `app.nauticaglem.it`, `admin.nauticaglem.it`).
+3. Integrare Stripe reale per il top-up del wallet (ora il top-up è immediato/simulato).
+4. Firmware ESP32 → MQTT → aggiornare `sessions.kwh` con letture reali.
