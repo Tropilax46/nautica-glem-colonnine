@@ -2,7 +2,7 @@ import { useRouter } from "next/router";
 import useSWR from "swr";
 import AuthGuard from "@/components/AuthGuard";
 import Layout from "@/components/Layout";
-import { clearToken, fetcher, UserOut } from "@/lib/api";
+import { signOut, fetcher, UserOut } from "@/lib/api";
 
 function Row({ label, value }: { label: string; value: string | null }) {
   return (
@@ -17,8 +17,8 @@ function Profilo() {
   const router = useRouter();
   const { data: me } = useSWR<UserOut>("/users/me", fetcher);
 
-  function logout() {
-    clearToken();
+  async function logout() {
+    await signOut();
     router.replace("/login");
   }
 
@@ -31,25 +31,17 @@ function Profilo() {
         <Row label="Barca" value={me?.boat_name ?? null} />
         <Row label="Saldo wallet" value={me ? `${me.wallet_eur.toFixed(2)} €` : null} />
       </div>
-
-      <button
-        onClick={logout}
-        className="w-full rounded-xl border border-red-200 bg-white py-3 font-semibold text-red-600 active:scale-[0.98]"
-      >
+      <button onClick={logout}
+        className="w-full rounded-xl border border-red-200 bg-white py-3 font-semibold text-red-600 active:scale-[0.98]">
         Esci
       </button>
-
       <p className="mt-6 text-center text-xs text-slate-400">
-        Nautica GLEM — Colonnine molo smart · webapp client v0.1
+        Nautica GLEM — Colonnine molo smart · webapp client v0.2
       </p>
     </Layout>
   );
 }
 
 export default function Page() {
-  return (
-    <AuthGuard>
-      <Profilo />
-    </AuthGuard>
-  );
+  return (<AuthGuard><Profilo /></AuthGuard>);
 }

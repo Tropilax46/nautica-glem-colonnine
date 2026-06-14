@@ -1,12 +1,12 @@
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { api, setToken, DEMO } from "@/lib/api";
+import { signIn } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState(DEMO ? "diportista@nauticaglem.it" : "");
-  const [password, setPassword] = useState(DEMO ? "demo" : "");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -15,11 +15,10 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const r = await api.post("/auth/login", { email, password });
-      setToken(r.data.access_token);
+      await signIn(email, password);
       router.replace("/");
     } catch (err: any) {
-      setError(err.response?.data?.detail ?? "Credenziali non valide o backend non raggiungibile");
+      setError(err.response?.data?.detail ?? "Credenziali non valide");
     } finally {
       setLoading(false);
     }
@@ -33,30 +32,11 @@ export default function LoginPage() {
         <p className="text-slate-500">Colonnine del molo</p>
       </div>
 
-      {DEMO && (
-        <div className="mb-4 rounded-xl bg-glem-50 px-4 py-3 text-center text-sm text-glem-700">
-          <strong>Modalità demo</strong> — premi <em>Accedi</em> con qualsiasi
-          email e password per entrare.
-        </div>
-      )}
-
       <form onSubmit={onSubmit} className="card space-y-4">
-        <input
-          className="input"
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input
-          className="input"
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+        <input className="input" type="email" placeholder="Email"
+          value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <input className="input" type="password" placeholder="Password"
+          value={password} onChange={(e) => setPassword(e.target.value)} required />
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button className="btn-primary" disabled={loading}>
           {loading ? "Accesso..." : "Accedi"}
@@ -65,9 +45,7 @@ export default function LoginPage() {
 
       <p className="mt-6 text-center text-sm text-slate-500">
         Non hai un account?{" "}
-        <Link href="/register" className="font-semibold text-glem-500">
-          Registrati
-        </Link>
+        <Link href="/register" className="font-semibold text-glem-500">Registrati</Link>
       </p>
     </div>
   );

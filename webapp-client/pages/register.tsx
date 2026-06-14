@@ -1,17 +1,11 @@
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { api, setToken } from "@/lib/api";
+import { signUp } from "@/lib/api";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-    full_name: "",
-    phone: "",
-    boat_name: "",
-  });
+  const [form, setForm] = useState({ email: "", password: "", full_name: "", phone: "", boat_name: "" });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -24,14 +18,10 @@ export default function RegisterPage() {
     setError(null);
     setLoading(true);
     try {
-      const r = await api.post("/auth/register", {
-        email: form.email,
-        password: form.password,
-        full_name: form.full_name || null,
-        phone: form.phone || null,
-        boat_name: form.boat_name || null,
+      await signUp({
+        email: form.email, password: form.password,
+        full_name: form.full_name || null, phone: form.phone || null, boat_name: form.boat_name || null,
       });
-      setToken(r.data.access_token);
       router.replace("/");
     } catch (err: any) {
       setError(err.response?.data?.detail ?? "Errore durante la registrazione");
@@ -43,7 +33,6 @@ export default function RegisterPage() {
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-8">
       <h1 className="mb-6 text-center text-2xl font-bold text-glem-700">Crea il tuo account</h1>
-
       <form onSubmit={onSubmit} className="card space-y-4">
         <input className="input" type="email" placeholder="Email *" required
           value={form.email} onChange={(e) => set("email", e.target.value)} />
@@ -60,12 +49,9 @@ export default function RegisterPage() {
           {loading ? "Registrazione..." : "Registrati"}
         </button>
       </form>
-
       <p className="mt-6 text-center text-sm text-slate-500">
         Hai già un account?{" "}
-        <Link href="/login" className="font-semibold text-glem-500">
-          Accedi
-        </Link>
+        <Link href="/login" className="font-semibold text-glem-500">Accedi</Link>
       </p>
     </div>
   );
