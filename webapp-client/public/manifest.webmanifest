@@ -1,0 +1,16 @@
+{
+  "name": "Nautica GLEM — Colonnine",
+  "short_name": "Nautica GLEM",
+  "description": "Ricarica energia alle colonnine del molo",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b4f6c",
+  "theme_color": "#0b4f6c",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

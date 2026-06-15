@@ -56,4 +56,8 @@ d'ambiente necessaria per la demo.
 | /register | `POST /auth/register` |
 | / (colonnine) | `GET /colonnine`, `GET /users/me` |
 | /avvia | `POST /sessions` |
-| /sessione | `GET /sessions/active`, `DELETE /sessions/{id
+| /sessione | `GET /sessions/active`, `DELETE /sessions/{id}` |
+| /wallet | `GET /wallet`, `POST /wallet/topup` |
+| /profilo | `GET /users/me` |
+
+La modalità è decisa in `lib/api.ts`; i dati finti stanno in `lib/demo.ts`.
