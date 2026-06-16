@@ -10,13 +10,15 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const next = typeof router.query.next === "string" ? router.query.next : "/";
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
       await signIn(email, password);
-      router.replace("/");
+      router.replace(next);
     } catch (err: any) {
       setError(err.response?.data?.detail ?? "Credenziali non valide");
     } finally {
@@ -31,21 +33,17 @@ export default function LoginPage() {
         <h1 className="mt-2 text-2xl font-bold text-glem-700">Nautica GLEM</h1>
         <p className="text-slate-500">Colonnine del molo</p>
       </div>
-
       <form onSubmit={onSubmit} className="card space-y-4">
         <input className="input" type="email" placeholder="Email"
           value={email} onChange={(e) => setEmail(e.target.value)} required />
         <input className="input" type="password" placeholder="Password"
           value={password} onChange={(e) => setPassword(e.target.value)} required />
         {error && <p className="text-sm text-red-600">{error}</p>}
-        <button className="btn-primary" disabled={loading}>
-          {loading ? "Accesso..." : "Accedi"}
-        </button>
+        <button className="btn-primary" disabled={loading}>{loading ? "Accesso..." : "Accedi"}</button>
       </form>
-
       <p className="mt-6 text-center text-sm text-slate-500">
         Non hai un account?{" "}
-        <Link href="/register" className="font-semibold text-glem-500">Registrati</Link>
+        <Link href={`/register${next !== "/" ? "?next=" + encodeURIComponent(next) : ""}`} className="font-semibold text-glem-500">Registrati</Link>
       </p>
     </div>
   );

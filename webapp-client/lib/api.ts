@@ -1,7 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
 
-// URL + chiave pubblica (anon) Supabase. La anon key è PUBBLICA per design:
-// l'accesso ai dati è protetto dalle policy RLS lato database.
 const SUPABASE_URL =
   process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://suptzhugjpppcxpblcov.supabase.co";
 const SUPABASE_ANON =
@@ -11,7 +9,6 @@ const SUPABASE_ANON =
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
 const num = (v: any) => (v == null ? 0 : Number(v));
-
 function mapErr(error: any) {
   const e: any = new Error(error?.message ?? "Errore");
   e.response = { data: { detail: error?.message ?? "Errore" } };
@@ -28,12 +25,10 @@ export async function signUp(args: {
   full_name?: string | null; phone?: string | null; boat_name?: string | null;
 }) {
   const { error } = await supabase.auth.signUp({
-    email: args.email,
-    password: args.password,
+    email: args.email, password: args.password,
     options: { data: { full_name: args.full_name ?? "", phone: args.phone ?? "", boat_name: args.boat_name ?? "" } },
   });
   if (error) throw mapErr(error);
-  // auto-conferma attiva → effettua subito il login per avere una sessione
   const { error: e2 } = await supabase.auth.signInWithPassword({ email: args.email, password: args.password });
   if (e2) throw mapErr(e2);
 }
@@ -57,12 +52,25 @@ export async function fetcher(key: string): Promise<any> {
   if (key === "/colonnine") {
     const { data, error } = await supabase.rpc("colonnine_stato");
     if (error) throw mapErr(error);
-    return (data ?? []).map((c: any) => ({ ...c, tariffa_eur_kwh: num(c.tariffa_eur_kwh) }));
+    return (data ?? []).map((c: any) => ({
+      ...c,
+      tariffa_eur_kwh: num(c.tariffa_eur_kwh),
+      tariffa_acqua_eur_l: num(c.tariffa_acqua_eur_l),
+    }));
   }
   if (key === "/sessions/active") {
     const { data, error } = await supabase.rpc("my_active_session");
     if (error) throw mapErr(error);
-    return (data ?? []).map((s: any) => ({ ...s, presa_n: num(s.presa_n), kwh: num(s.kwh), cost_eur: num(s.cost_eur) }));
+    return (data ?? []).map((s: any) => ({
+      id: s.id, colonnina_id: s.colonnina_id, presa_n: num(s.presa_n), status: s.status,
+      usa_elettricita: s.usa_elettricita, usa_acqua: s.usa_acqua,
+      potenza_kw: num(s.potenza_kw), flusso_l_min: num(s.flusso_l_min),
+      kwh: num(s.kwh), litri: num(s.litri),
+      costo_elettricita: num(s.costo_elettricita), costo_acqua: num(s.costo_acqua),
+      costo_totale: num(s.costo_totale), cost_eur: num(s.costo_totale),
+      saldo: num(s.saldo), max_debito: num(s.max_debito), disponibile: num(s.disponibile),
+      limite_raggiunto: !!s.limite_raggiunto, started_at: s.started_at,
+    }));
   }
   if (key === "/wallet") {
     const { data: u } = await supabase.auth.getUser();
@@ -85,6 +93,7 @@ export const api = {
     if (url === "/sessions") {
       const { data, error } = await supabase.rpc("start_session", {
         p_qr: body.qr_code, p_max_kwh: body.max_kwh ?? null,
+        p_usa_elettricita: body.usa_elettricita ?? true, p_usa_acqua: body.usa_acqua ?? false,
       });
       if (error) throw mapErr(error);
       return { data: { id: data } };
@@ -108,6 +117,16 @@ export const api = {
   },
 };
 
+/* Dettaglio colonnina (per il flusso di avvio) */
+export async function getColonnina(id: string) {
+  const { data, error } = await supabase
+    .from("colonnine")
+    .select("id,nome,posto_barca,tariffa_eur_kwh,potenza_kw,eroga_elettricita,eroga_acqua,tariffa_acqua_eur_l,flusso_l_min,num_prese,online")
+    .eq("id", id).maybeSingle();
+  if (error) throw mapErr(error);
+  return data;
+}
+
 /* ── Tipi ── */
 export interface UserOut {
   id: string; email: string; full_name: string | null;
@@ -115,12 +134,18 @@ export interface UserOut {
 }
 export interface PresaPublic { numero: number; stato: string; }
 export interface ColonninaPublic {
-  id: string; nome: string; posto_barca: string;
-  tariffa_eur_kwh: number; online: boolean; prese: PresaPublic[];
+  id: string; nome: string; posto_barca: string; tariffa_eur_kwh: number;
+  eroga_elettricita: boolean; eroga_acqua: boolean; tariffa_acqua_eur_l: number;
+  online: boolean; prese: PresaPublic[];
 }
 export interface SessionOut {
-  id: string; colonnina_id: string; presa_n: number;
-  status: string; kwh: number; cost_eur: number;
+  id: string; colonnina_id: string; presa_n: number; status: string;
+  usa_elettricita: boolean; usa_acqua: boolean;
+  potenza_kw: number; flusso_l_min: number;
+  kwh: number; litri: number;
+  costo_elettricita: number; costo_acqua: number; costo_totale: number; cost_eur: number;
+  saldo: number; max_debito: number; disponibile: number;
+  limite_raggiunto: boolean; started_at: string;
 }
 export interface Movimento {
   ts: string; type: string; delta_eur: number; kwh: number; note: string | null;

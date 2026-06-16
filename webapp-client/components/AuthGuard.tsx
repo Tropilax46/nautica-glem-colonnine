@@ -2,7 +2,7 @@ import { useRouter } from "next/router";
 import { ReactNode, useEffect, useState } from "react";
 import { hasSession } from "@/lib/api";
 
-/** Reindirizza a /login se non c'è una sessione Supabase attiva. */
+/** Reindirizza a /login (conservando la destinazione) se non c'è sessione. */
 export default function AuthGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [ok, setOk] = useState(false);
@@ -11,7 +11,7 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
     let alive = true;
     hasSession().then((s) => {
       if (!alive) return;
-      if (!s) router.replace("/login");
+      if (!s) router.replace("/login?next=" + encodeURIComponent(router.asPath));
       else setOk(true);
     });
     return () => { alive = false; };

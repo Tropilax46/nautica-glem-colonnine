@@ -5,7 +5,7 @@ import { api, fetcher, impersonate, CLIENT_URL } from "../lib/api";
 
 type Utente = {
   id: string; nome: string; email: string; telefono: string;
-  barca: string; saldo_eur: number; creato_il: string;
+  barca: string; saldo_eur: number; max_debito: number | null; creato_il: string;
 };
 
 export default function Utenti() {
@@ -16,34 +16,34 @@ export default function Utenti() {
   const accredita = async (u: Utente) => {
     const eur = parseFloat(prompt(`Quanti euro accreditare a ${u.nome}?`, "10") ?? "0");
     if (!eur || eur <= 0) return;
-    try { await api.post(`/admin/users/${u.id}/credit`, { amount_eur: eur }); mutate(); }
-    catch (e: any) { alert(e.message ?? "Errore"); }
+    try { await api.post(`/admin/users/${u.id}/credit`, { amount_eur: eur }); mutate(); } catch (e: any) { alert(e.message); }
   };
-
+  const debito = async (u: Utente) => {
+    const v = prompt(`Debito massimo per ${u.nome} in € (vuoto = usa il default):`, u.max_debito != null ? String(u.max_debito) : "");
+    if (v === null) return;
+    const value = v.trim() === "" ? null : parseFloat(v);
+    try { await api.post(`/admin/users/${u.id}/max-debito`, { value }); mutate(); } catch (e: any) { alert(e.message); }
+  };
   const entraCome = async (u: Utente) => {
     setBusy(u.id);
     try {
       const { access_token, refresh_token } = await impersonate(u.id);
-      const url = `${CLIENT_URL}/impersona#at=${encodeURIComponent(access_token)}&rt=${encodeURIComponent(refresh_token)}`;
-      window.open(url, "_blank", "noopener");
-    } catch (e: any) { alert("Impossibile entrare come utente: " + (e.message ?? "errore")); }
-    finally { setBusy(null); }
+      window.open(`${CLIENT_URL}/impersona#at=${encodeURIComponent(access_token)}&rt=${encodeURIComponent(refresh_token)}`, "_blank", "noopener");
+    } catch (e: any) { alert("Impossibile entrare come utente: " + (e.message ?? "errore")); } finally { setBusy(null); }
   };
 
   return (
     <Layout>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">Utenti</h1>
-        <input className="border rounded p-2 w-full sm:w-64" placeholder="Cerca per nome, email, barca…"
-          value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className="border rounded p-2 w-full sm:w-64" placeholder="Cerca per nome, email, barca…" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
-
       <div className="bg-white rounded-xl shadow-sm overflow-x-auto">
-        <table className="w-full min-w-[720px] text-sm">
+        <table className="w-full min-w-[820px] text-sm">
           <thead className="bg-gray-50 text-left text-gray-500">
             <tr>
               <th className="p-3">Nome</th><th className="p-3">Contatti</th><th className="p-3">Barca</th>
-              <th className="p-3">Saldo</th><th className="p-3">Iscritto</th><th className="p-3 text-right">Azioni</th>
+              <th className="p-3">Saldo</th><th className="p-3">Debito max</th><th className="p-3 text-right">Azioni</th>
             </tr>
           </thead>
           <tbody>
@@ -52,22 +52,20 @@ export default function Utenti() {
                 <td className="p-3 font-medium">{u.nome}</td>
                 <td className="p-3"><div>{u.email}</div><div className="text-gray-500 text-xs">{u.telefono}</div></td>
                 <td className="p-3">{u.barca || "—"}</td>
-                <td className="p-3 font-mono">€ {u.saldo_eur.toFixed(2)}</td>
-                <td className="p-3 text-gray-500">{new Date(u.creato_il).toLocaleDateString()}</td>
+                <td className={`p-3 font-mono ${u.saldo_eur < 0 ? "text-red-600" : ""}`}>€ {u.saldo_eur.toFixed(2)}</td>
+                <td className="p-3">{u.max_debito != null ? `€ ${u.max_debito.toFixed(2)}` : <span className="text-gray-400">default</span>}</td>
                 <td className="p-3">
-                  <div className="flex items-center justify-end gap-3">
+                  <div className="flex flex-wrap items-center justify-end gap-3">
                     <button onClick={() => accredita(u)} className="text-glem-500 hover:underline text-xs whitespace-nowrap">+ Accredita</button>
-                    <button onClick={() => entraCome(u)} disabled={busy === u.id}
-                      className="rounded bg-glem-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-glem-700 disabled:opacity-50 whitespace-nowrap">
+                    <button onClick={() => debito(u)} className="text-glem-500 hover:underline text-xs whitespace-nowrap">Debito max</button>
+                    <button onClick={() => entraCome(u)} disabled={busy === u.id} className="rounded bg-glem-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-glem-700 disabled:opacity-50 whitespace-nowrap">
                       {busy === u.id ? "Apro…" : "Entra come utente ↗"}
                     </button>
                   </div>
                 </td>
               </tr>
             ))}
-            {data && data.length === 0 && (
-              <tr><td colSpan={6} className="p-6 text-center text-gray-400">Nessun cliente trovato.</td></tr>
-            )}
+            {data && data.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-gray-400">Nessun cliente trovato.</td></tr>}
           </tbody>
         </table>
       </div>
