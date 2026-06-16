@@ -27,12 +27,36 @@ export default function Layout({ children, title }: { children: ReactNode; title
   const hasActive = (active?.length ?? 0) > 0;
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col">
-      <header className="sticky top-0 z-10 bg-glem-500 px-4 py-3 text-white shadow">
-        <h1 className="text-lg font-bold">{title ?? "Nautica GLEM"}</h1>
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-10 bg-glem-500 text-white shadow">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
+          <h1 className="text-lg font-bold">{title ?? "Nautica GLEM"}</h1>
+          {/* Navigazione orizzontale (tablet/desktop) */}
+          <nav className="hidden gap-1 sm:flex">
+            {tabs.map((t) => {
+              const current = router.pathname === t.href;
+              return (
+                <Link key={t.href} href={t.href}
+                  className={`relative rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                    current ? "bg-white text-glem-700" : "text-white/90 hover:bg-white/10"
+                  }`}>
+                  <span className="mr-1">{t.icon}</span>{t.label}
+                  {t.href === "/sessione" && hasActive && (
+                    <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-green-400" />
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
       </header>
-      <main className="flex-1 px-4 py-4 pb-24">{children}</main>
-      <nav className="fixed inset-x-0 bottom-0 z-10 mx-auto flex max-w-md border-t border-slate-200 bg-white">
+
+      <main className="mx-auto w-full max-w-md px-4 py-4 pb-24 sm:max-w-3xl sm:pb-8 lg:max-w-5xl">
+        {children}
+      </main>
+
+      {/* Navigazione inferiore (solo mobile) */}
+      <nav className="fixed inset-x-0 bottom-0 z-10 mx-auto flex max-w-md border-t border-slate-200 bg-white sm:hidden">
         {tabs.map((t) => {
           const current = router.pathname === t.href;
           return (

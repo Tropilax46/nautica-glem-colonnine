@@ -37,14 +37,9 @@ function Home() {
       <div className="card mb-4 flex items-center justify-between bg-glem-500 text-white">
         <div>
           <p className="text-sm opacity-80">Saldo wallet</p>
-          <p className="text-2xl font-bold">
-            {me ? `${me.wallet_eur.toFixed(2)} €` : "—"}
-          </p>
+          <p className="text-2xl font-bold">{me ? `${me.wallet_eur.toFixed(2)} €` : "—"}</p>
         </div>
-        <Link
-          href="/avvia"
-          className="rounded-xl bg-white px-4 py-2.5 font-semibold text-glem-700 active:scale-95"
-        >
+        <Link href="/avvia" className="rounded-xl bg-white px-4 py-2.5 font-semibold text-glem-700 active:scale-95">
           ⚡ Avvia prelievo
         </Link>
       </div>
@@ -57,13 +52,9 @@ function Home() {
       />
 
       {isLoading && <p className="text-center text-slate-400">Caricamento…</p>}
-      {error && (
-        <p className="text-center text-red-600">
-          Impossibile contattare il backend. Verifica che sia avviato.
-        </p>
-      )}
+      {error && <p className="text-center text-red-600">Impossibile caricare le colonnine. Riprova.</p>}
 
-      <div className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.map((c) => (
           <div key={c.id} className="card">
             <div className="flex items-center justify-between">
@@ -88,18 +79,15 @@ function Home() {
             </div>
           </div>
         ))}
-        {!isLoading && !error && filtered.length === 0 && (
-          <p className="text-center text-slate-400">Nessuna colonnina trovata.</p>
-        )}
       </div>
+
+      {!isLoading && !error && filtered.length === 0 && (
+        <p className="mt-4 text-center text-slate-400">Nessuna colonnina trovata.</p>
+      )}
     </Layout>
   );
 }
 
 export default function Page() {
-  return (
-    <AuthGuard>
-      <Home />
-    </AuthGuard>
-  );
+  return (<AuthGuard><Home /></AuthGuard>);
 }
