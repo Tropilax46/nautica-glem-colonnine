@@ -3,10 +3,7 @@ import Layout from "../components/Layout";
 import { api, fetcher } from "../lib/api";
 
 type Colonnina = {
-  id: string;
-  nome: string;
-  posto_barca: string;
-  online: boolean;
+  id: string; nome: string; posto_barca: string; online: boolean;
   ultima_telemetria: string | null;
   prese: { numero: number; stato: string; sessione_id: string | null; kwh_correnti: number }[];
 };
@@ -22,21 +19,17 @@ export default function Colonnine() {
 
   return (
     <Layout>
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">Colonnine</h1>
-        <button className="bg-glem-500 text-white px-4 py-2 rounded hover:bg-glem-700">+ Aggiungi</button>
+        <button className="bg-glem-500 text-white px-4 py-2 rounded hover:bg-glem-700 w-full sm:w-auto">+ Aggiungi</button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-white rounded-xl shadow-sm overflow-x-auto">
+        <table className="w-full min-w-[680px] text-sm">
           <thead className="bg-gray-50 text-left text-gray-500">
             <tr>
-              <th className="p-3">Nome</th>
-              <th className="p-3">Posto barca</th>
-              <th className="p-3">Stato</th>
-              <th className="p-3">Prese attive</th>
-              <th className="p-3">Ultima telemetria</th>
-              <th className="p-3"></th>
+              <th className="p-3">Nome</th><th className="p-3">Posto barca</th><th className="p-3">Stato</th>
+              <th className="p-3">Prese attive</th><th className="p-3">Ultima telemetria</th><th className="p-3"></th>
             </tr>
           </thead>
           <tbody>
@@ -54,9 +47,7 @@ export default function Colonnine() {
                   <td className="p-3">{attive}/{c.prese.length}</td>
                   <td className="p-3 text-gray-500">{c.ultima_telemetria ? new Date(c.ultima_telemetria).toLocaleString() : "—"}</td>
                   <td className="p-3 text-right">
-                    <button onClick={() => forzaOff(c.id)} className="text-red-600 hover:underline text-xs">
-                      Force OFF
-                    </button>
+                    <button onClick={() => forzaOff(c.id)} className="text-red-600 hover:underline text-xs whitespace-nowrap">Force OFF</button>
                   </td>
                 </tr>
               );

@@ -22,14 +22,14 @@ export default function Dashboard() {
     <Layout>
       <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 gap-4 mb-8 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="Colonnine attive" value={`${data?.colonnine_attive ?? "—"}/${data?.colonnine_totali ?? "—"}`} />
         <KpiCard label="Utenti registrati" value={data?.utenti_totali ?? "—"} hint={`${data?.utenti_attivi_30d ?? "—"} attivi 30g`} />
         <KpiCard label="kWh oggi" value={data ? data.kwh_oggi.toFixed(1) : "—"} />
         <KpiCard label="Ricavi mese" value={data ? `€ ${data.ricavi_mese_eur.toFixed(0)}` : "—"} hint={data ? `oggi € ${data.ricavi_oggi_eur.toFixed(0)}` : ""} />
       </div>
 
-      <div className="bg-white rounded-xl p-6 shadow-sm">
+      <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm">
         <h2 className="font-semibold mb-4">Andamento ultimi 30 giorni</h2>
         <div style={{ width: "100%", height: 320 }}>
           <ResponsiveContainer>

@@ -3,10 +3,7 @@ import Layout from "../components/Layout";
 import { fetcher } from "../lib/api";
 import { useState } from "react";
 
-type Tx = {
-  id: string; created_at: string; user_email: string;
-  type: string; kwh: number | null; delta_eur: number;
-};
+type Tx = { id: string; created_at: string; user_email: string; type: string; kwh: number | null; delta_eur: number };
 
 export default function Transazioni() {
   const [from, setFrom] = useState("");
@@ -18,11 +15,8 @@ export default function Transazioni() {
     const rows = data ?? [];
     const head = ["data", "utente", "tipo", "kwh", "importo_eur"];
     const lines = rows.map((t) => [
-      new Date(t.created_at).toISOString(),
-      t.user_email,
-      t.type,
-      t.kwh != null ? t.kwh.toFixed(2) : "",
-      t.delta_eur.toFixed(2),
+      new Date(t.created_at).toISOString(), t.user_email, t.type,
+      t.kwh != null ? t.kwh.toFixed(2) : "", t.delta_eur.toFixed(2),
     ].map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","));
     const csv = [head.join(","), ...lines].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
@@ -34,9 +28,9 @@ export default function Transazioni() {
 
   return (
     <Layout>
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">Transazioni</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="border rounded p-2" />
           <span>→</span>
           <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="border rounded p-2" />
@@ -44,8 +38,8 @@ export default function Transazioni() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-white rounded-xl shadow-sm overflow-x-auto">
+        <table className="w-full min-w-[640px] text-sm">
           <thead className="bg-gray-50 text-left text-gray-500">
             <tr>
               <th className="p-3">Data</th><th className="p-3">Utente</th><th className="p-3">Tipo</th>
