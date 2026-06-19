@@ -22,3 +22,6 @@ body {
     @apply rounded-2xl bg-white p-4 shadow-sm;
   }
 }
+
+@keyframes glem-ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.ticker { display: inline-block; animation: glem-ticker 18s linear infinite; }
