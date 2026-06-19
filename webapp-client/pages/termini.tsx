@@ -17,7 +17,7 @@ export default function Page() {
         </div>
 
         <Sez n="1" t="Titolare del servizio">
-          <p>Il servizio Nautica GLEM (di seguito il “Servizio”) è gestito da [RAGIONE SOCIALE], P.IVA [P.IVA], con sede in [SEDE LEGALE] (di seguito il “Gestore”). Per qualsiasi comunicazione: [EMAIL] — PEC [PEC].</p>
+          <p>Il servizio Nautica GLEM (di seguito il “Servizio”) è gestito da [RAGIONE SOCIALE], P.IVA 02803540877, con sede in [SEDE LEGALE] (di seguito il “Gestore”). Per qualsiasi comunicazione: [EMAIL] — PEC [PEC].</p>
         </Sez>
 
         <Sez n="2" t="Oggetto e accettazione">

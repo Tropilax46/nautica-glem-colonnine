@@ -17,7 +17,7 @@ export default function Page() {
         </div>
 
         <Sez n="1" t="Titolare del trattamento">
-          <p>Titolare è [RAGIONE SOCIALE], P.IVA [P.IVA], sede in [SEDE LEGALE], email [EMAIL], PEC [PEC]. [Eventuale Responsabile della Protezione dei Dati (DPO): [CONTATTO DPO]].</p>
+          <p>Titolare è [RAGIONE SOCIALE], P.IVA 02803540877, sede in [SEDE LEGALE], email [EMAIL], PEC [PEC]. [Eventuale Responsabile della Protezione dei Dati (DPO): [CONTATTO DPO]].</p>
         </Sez>
 
         <Sez n="2" t="Dati personali trattati">
