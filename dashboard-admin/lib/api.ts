@@ -63,13 +63,14 @@ export async function fetcher(key: string): Promise<any> {
   if (key.startsWith("/admin/users")) {
     const q = qparam(key, "q").toLowerCase();
     const { data, error } = await supabase.from("profiles")
-      .select("id,email,full_name,phone,boat_name,wallet_eur,max_debito_eur,created_at")
+      .select("id,email,full_name,phone,boat_name,wallet_eur,max_debito_eur,created_at,gruppo_id,gruppi_utenti(nome)")
       .eq("role", "diportista").order("created_at", { ascending: false });
     if (error) throw mapErr(error);
     let rows = (data ?? []).map((u: any) => ({
       id: u.id, nome: u.full_name ?? "(senza nome)", email: u.email ?? "", telefono: u.phone ?? "",
       barca: u.boat_name ?? "", saldo_eur: num(u.wallet_eur),
       max_debito: u.max_debito_eur == null ? null : num(u.max_debito_eur), creato_il: u.created_at,
+      gruppo_id: u.gruppo_id ?? null, gruppo_nome: u.gruppi_utenti?.nome ?? null,
     }));
     if (q) rows = rows.filter((u) => [u.nome, u.email, u.barca].some((v) => (v ?? "").toLowerCase().includes(q)));
     return rows;
@@ -112,6 +113,10 @@ export const api = {
     if (mm) { const { error } = await supabase.rpc("admin_accredita", { p_user: mm[1], p_amount: body.amount_eur }); if (error) throw mapErr(error); return { data: { ok: true } }; }
     mm = url.match(/^\/admin\/users\/([^/]+)\/max-debito$/);
     if (mm) { const { error } = await supabase.rpc("admin_set_max_debito", { p_user: mm[1], p_val: body.value }); if (error) throw mapErr(error); return { data: { ok: true } }; }
+    mm = url.match(/^\/admin\/users\/([^/]+)\/gruppo$/);
+    if (mm) { const { error } = await supabase.rpc("admin_set_gruppo", { p_user: mm[1], p_gruppo: body.gruppo || null }); if (error) throw mapErr(error); return { data: { ok: true } }; }
+    mm = url.match(/^\/admin\/users\/([^/]+)\/ruolo$/);
+    if (mm) { const { error } = await supabase.rpc("admin_set_ruolo", { p_user: mm[1], p_ruolo: body.ruolo }); if (error) throw mapErr(error); return { data: { ok: true } }; }
     if (url === "/admin/settings/default-max-debito") { const { error } = await supabase.rpc("admin_set_default_max_debito", { p_val: body.value }); if (error) throw mapErr(error); return { data: { ok: true } }; }
     mm = url.match(/^\/admin\/colonnine\/([^/]+)\/force-off$/);
     if (mm) {

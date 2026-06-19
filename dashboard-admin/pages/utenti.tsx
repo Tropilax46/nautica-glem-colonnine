@@ -1,17 +1,16 @@
 import useSWR from "swr";
 import { useState } from "react";
 import Layout from "../components/Layout";
-import { api, fetcher, impersonate, CLIENT_URL } from "../lib/api";
+import { api, fetcher, impersonate, CLIENT_URL, supabase } from "../lib/api";
 
-type Utente = {
-  id: string; nome: string; email: string; telefono: string;
-  barca: string; saldo_eur: number; max_debito: number | null; creato_il: string;
-};
+type Utente = { id: string; nome: string; email: string; telefono: string; barca: string; saldo_eur: number; max_debito: number | null; gruppo_id: string | null; gruppo_nome: string | null; creato_il: string };
+const loadGruppi = async () => { const { data } = await supabase.from("gruppi_utenti").select("id,nome").order("nome"); return data ?? []; };
 
 export default function Utenti() {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const { data, mutate } = useSWR<Utente[]>(`/admin/users?q=${encodeURIComponent(q)}`, fetcher);
+  const { data: gruppi } = useSWR("gruppi-opts", loadGruppi);
 
   const accredita = async (u: Utente) => {
     const eur = parseFloat(prompt(`Quanti euro accreditare a ${u.nome}?`, "10") ?? "0");
@@ -19,17 +18,17 @@ export default function Utenti() {
     try { await api.post(`/admin/users/${u.id}/credit`, { amount_eur: eur }); mutate(); } catch (e: any) { alert(e.message); }
   };
   const debito = async (u: Utente) => {
-    const v = prompt(`Debito massimo per ${u.nome} in € (vuoto = usa il default):`, u.max_debito != null ? String(u.max_debito) : "");
+    const v = prompt(`Debito massimo per ${u.nome} in € (vuoto = default):`, u.max_debito != null ? String(u.max_debito) : "");
     if (v === null) return;
-    const value = v.trim() === "" ? null : parseFloat(v);
-    try { await api.post(`/admin/users/${u.id}/max-debito`, { value }); mutate(); } catch (e: any) { alert(e.message); }
+    try { await api.post(`/admin/users/${u.id}/max-debito`, { value: v.trim() === "" ? null : parseFloat(v) }); mutate(); } catch (e: any) { alert(e.message); }
+  };
+  const setGruppo = async (u: Utente, gruppo: string) => {
+    try { await api.post(`/admin/users/${u.id}/gruppo`, { gruppo: gruppo || null }); mutate(); } catch (e: any) { alert(e.message); }
   };
   const entraCome = async (u: Utente) => {
     setBusy(u.id);
-    try {
-      const { access_token, refresh_token } = await impersonate(u.id);
-      window.open(`${CLIENT_URL}/impersona#at=${encodeURIComponent(access_token)}&rt=${encodeURIComponent(refresh_token)}`, "_blank", "noopener");
-    } catch (e: any) { alert("Impossibile entrare come utente: " + (e.message ?? "errore")); } finally { setBusy(null); }
+    try { const { access_token, refresh_token } = await impersonate(u.id); window.open(`${CLIENT_URL}/impersona#at=${encodeURIComponent(access_token)}&rt=${encodeURIComponent(refresh_token)}`, "_blank", "noopener"); }
+    catch (e: any) { alert("Impossibile entrare come utente: " + (e.message ?? "errore")); } finally { setBusy(null); }
   };
 
   return (
@@ -39,12 +38,9 @@ export default function Utenti() {
         <input className="border rounded p-2 w-full sm:w-64" placeholder="Cerca per nome, email, barca…" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
       <div className="bg-white rounded-xl shadow-sm overflow-x-auto">
-        <table className="w-full min-w-[820px] text-sm">
+        <table className="w-full min-w-[940px] text-sm">
           <thead className="bg-gray-50 text-left text-gray-500">
-            <tr>
-              <th className="p-3">Nome</th><th className="p-3">Contatti</th><th className="p-3">Barca</th>
-              <th className="p-3">Saldo</th><th className="p-3">Debito max</th><th className="p-3 text-right">Azioni</th>
-            </tr>
+            <tr><th className="p-3">Nome</th><th className="p-3">Contatti</th><th className="p-3">Barca</th><th className="p-3">Saldo</th><th className="p-3">Debito max</th><th className="p-3">Gruppo</th><th className="p-3 text-right">Azioni</th></tr>
           </thead>
           <tbody>
             {data?.map((u) => (
@@ -55,17 +51,21 @@ export default function Utenti() {
                 <td className={`p-3 font-mono ${u.saldo_eur < 0 ? "text-red-600" : ""}`}>€ {u.saldo_eur.toFixed(2)}</td>
                 <td className="p-3">{u.max_debito != null ? `€ ${u.max_debito.toFixed(2)}` : <span className="text-gray-400">default</span>}</td>
                 <td className="p-3">
+                  <select className="border rounded p-1 text-xs" value={u.gruppo_id ?? ""} onChange={(e) => setGruppo(u, e.target.value)}>
+                    <option value="">— nessuno —</option>
+                    {gruppi?.map((g: any) => <option key={g.id} value={g.id}>{g.nome}</option>)}
+                  </select>
+                </td>
+                <td className="p-3">
                   <div className="flex flex-wrap items-center justify-end gap-3">
                     <button onClick={() => accredita(u)} className="text-glem-500 hover:underline text-xs whitespace-nowrap">+ Accredita</button>
                     <button onClick={() => debito(u)} className="text-glem-500 hover:underline text-xs whitespace-nowrap">Debito max</button>
-                    <button onClick={() => entraCome(u)} disabled={busy === u.id} className="rounded bg-glem-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-glem-700 disabled:opacity-50 whitespace-nowrap">
-                      {busy === u.id ? "Apro…" : "Entra come utente ↗"}
-                    </button>
+                    <button onClick={() => entraCome(u)} disabled={busy === u.id} className="rounded bg-glem-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-glem-700 disabled:opacity-50 whitespace-nowrap">{busy === u.id ? "Apro…" : "Entra ↗"}</button>
                   </div>
                 </td>
               </tr>
             ))}
-            {data && data.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-gray-400">Nessun cliente trovato.</td></tr>}
+            {data && data.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-gray-400">Nessun cliente trovato.</td></tr>}
           </tbody>
         </table>
       </div>

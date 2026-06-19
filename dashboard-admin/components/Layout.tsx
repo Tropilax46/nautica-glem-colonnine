@@ -8,7 +8,10 @@ type Item = { label: string; href?: string; children?: Child[] };
 
 const NAV: Item[] = [
   { label: "Dashboard", href: "/" },
-  { label: "Sessioni attive", href: "/sessioni-attive" },
+  { label: "Sessioni", children: [
+    { label: "Attive", href: "/sessioni-attive" },
+    { label: "Storico", href: "/sessioni-storico" },
+  ]},
   { label: "News", href: "/news" },
   { label: "Utenti", children: [
     { label: "Utenti", href: "/utenti" },
