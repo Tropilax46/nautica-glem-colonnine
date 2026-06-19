@@ -40,7 +40,10 @@ export default function RegisterPage() {
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button className="btn-primary" disabled={loading}>{loading ? "Registrazione..." : "Registrati"}</button>
       </form>
-      <p className="mt-6 text-center text-sm text-slate-500">
+      <p className="mt-3 text-center text-xs text-slate-400">
+        Registrandoti accetti i <Link href="/termini" className="text-glem-500 underline">Termini e condizioni</Link> e l'<Link href="/privacy" className="text-glem-500 underline">Informativa Privacy</Link>.
+      </p>
+      <p className="mt-4 text-center text-sm text-slate-500">
         Hai già un account?{" "}
         <Link href={`/login${next !== "/" ? "?next=" + encodeURIComponent(next) : ""}`} className="font-semibold text-glem-500">Accedi</Link>
       </p>
